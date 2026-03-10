@@ -516,6 +516,35 @@ _aiswitch_wizard() {
   _aiswitch_apply "$profile" "$tools"
 }
 
+# ── Self-update ────────────────────────────────────────────────────────────────
+
+_aiswitch_cmd_update() {
+  local remote_url="https://raw.githubusercontent.com/alexanderkirov/aiswitch/main/aiswitch.sh"
+  local install_path="$HOME/.claude/aiswitch.sh"
+  local tmp; tmp=$(mktemp)
+
+  printf '  Checking for updates...\n' > /dev/tty
+
+  if ! curl -fsSL "$remote_url" -o "$tmp" 2>/dev/null; then
+    printf '  \033[31m✗ Failed to reach GitHub. Check your connection.\033[0m\n' > /dev/tty
+    rm -f "$tmp"
+    return 1
+  fi
+
+  if diff -q "$install_path" "$tmp" > /dev/null 2>&1; then
+    printf '  \033[32m✓ Already up to date.\033[0m\n' > /dev/tty
+    rm -f "$tmp"
+    return 0
+  fi
+
+  cp "$install_path" "${install_path}.bak"
+  mv "$tmp" "$install_path"
+  chmod 644 "$install_path"
+
+  printf '  \033[32m✓ Updated! Reload your shell to apply:\033[0m\n' > /dev/tty
+  printf '    source ~/.zshrc\n\n' > /dev/tty
+}
+
 # ── Public command ─────────────────────────────────────────────────────────────
 
 aiswitch() {
@@ -600,8 +629,12 @@ aiswitch() {
         echo "│  aiswitch mode [auto|manual]   aiswitch hit"
       fi
       echo "│  aiswitch keys [setup|status|delete]"
-      echo "│  aiswitch restore   aiswitch status"
+      echo "│  aiswitch restore   aiswitch status   aiswitch update"
       echo "╰────────────────────────────────────────────────────────"
+      ;;
+
+    update)
+      _aiswitch_cmd_update
       ;;
 
     help|--help|-h) aiswitch status ;;
