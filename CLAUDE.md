@@ -86,9 +86,16 @@ Profile files in `profiles/` are templates — never used directly. `_aiswitch_a
 
 1. `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`
 2. `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, appends `api_key`
-3. Calls `~/bin/apiswitch <profile>` + sources `~/.apienv` to update Claude auth env in current shell
-4. Kills `claude`/`codex` CLI processes from other sessions (by session ID, spares current session)
-5. Restarts Claude/Codex desktop apps if they were running
+3. Calls `~/bin/apiswitch <profile>` (output → `/dev/tty`; returns 1 on missing token, aborting apply) + sources `~/.apienv`
+4. `_aiswitch_launchd_env`: mirrors all auth env vars into macOS launchd bootstrap namespace via `launchctl setenv`/`unsetenv`, so GUI apps launched via `open -b` inherit them
+5. Kills `claude`/`codex` CLI processes from other sessions (by session ID, spares current session)
+6. Kills desktop apps with `kill -9` (not `pkill` — Electron resists SIGTERM) and relaunches via `open -b`
+
+### launchd env vs shell env
+
+macOS GUI apps launched via `open -b` do **not** inherit shell env vars — they get env from the launchd bootstrap namespace instead. `_aiswitch_launchd_env` bridges this gap by calling `launchctl setenv` for every var that `apiswitch` writes to `~/.apienv`. The token is read from `$ANTHROPIC_AUTH_TOKEN` (already set in shell by `source ~/.apienv` in step 3) with `_aiswitch_logiq_key()` as fallback.
+
+`launchctl setenv` only affects **newly launched** processes. The desktop app must be restarted (step 6) to pick up new values. Vars set this way persist for the user session but are lost on reboot — `aiswitch work` must be re-run after restart.
 
 ### Auth model
 
@@ -165,6 +172,10 @@ Background monitor (`~/.claude/aiswitch-monitor.sh`) polls every 30s, exits on r
 
 Restore time formula: `next_hour_boundary + 60s` — computed in `_aiswitch_compute_restore_time()`.
 
+## Known limitations
+
+**Claude desktop app Cowork mode** — Cowork uses a native Swift/Go VM (`swift_addon.node`) with its own HTTP client that does **not** read `ANTHROPIC_BASE_URL` from `process.env`. It bypasses the Anthropic JS SDK entirely and connects directly to `api.anthropic.com` (Anthropic IP `160.79.104.10`). There is no external config to redirect it to LogiQ. Only the Claude Code CLI and Codex use LogiQ in work profile.
+
 ## Troubleshooting
 
 **"Invalid API key" on new machine** — `~/.apienv` is missing. Run `apiswitch work` to regenerate it (requires `~/bin/apiswitch` with the LogiQ token to be present first).
@@ -174,3 +185,7 @@ Restore time formula: `next_hour_boundary + 60s` — computed in `_aiswitch_comp
 **Desktop app shows old model** — start a new conversation (not resuming); resuming sessions use per-session cached model.
 
 **Monitor process stuck** — `kill $(cat ~/.claude/aiswitch-monitor.pid) && rm ~/.claude/aiswitch-monitor.pid`
+
+**Desktop app still uses wrong profile after `aiswitch work`** — launchd env vars are set but the running app has stale env from before the switch. Force-restart it: `kill -9 $(pgrep -x "Claude") && open -b "com.anthropic.claudefordesktop"`. Then verify: `launchctl getenv ANTHROPIC_AUTH_TOKEN` should show the token.
+
+**Token missing after system reboot** — `launchctl setenv` values don't persist across reboots. Run `aiswitch work` again to repopulate launchd env and restart apps.
