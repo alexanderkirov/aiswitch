@@ -1,0 +1,5 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "xhigh"
+
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
