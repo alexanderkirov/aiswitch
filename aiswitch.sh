@@ -95,13 +95,18 @@ _aiswitch_key_set() {
     -a "$USER" -s "${_AISWITCH_KEYCHAIN}-${1}" -w "${2}"
 }
 
+_aiswitch_anthropic_key() {
+  local k; k=$(_aiswitch_key_get "anthropic")
+  echo "${k:-${ANTHROPIC_API_KEY:-}}"
+}
+
 _aiswitch_logiq_key() {
   local k; k=$(_aiswitch_key_get "openai")
   echo "${k:-${OPENAI_API_KEY:-}}"
 }
 
 _aiswitch_keys_any() {
-  [[ -n "$(_aiswitch_logiq_key)" ]]
+  [[ -n "$(_aiswitch_anthropic_key)" || -n "$(_aiswitch_logiq_key)" ]]
 }
 
 _aiswitch_key_mask() {
@@ -134,10 +139,13 @@ _aiswitch_setup_key() {          # _aiswitch_setup_key NAME LABEL
 }
 
 _aiswitch_setup_keys() {
-  printf '\n  \033[1;36m──  LogiQ API Key Setup  ──\033[0m\n'                        > /dev/tty
-  printf '  Keys are stored in your macOS Keychain, not in files.\n'                 > /dev/tty
-  printf '  Get your key: https://logiq.logitech.io\n'                               > /dev/tty
-  printf '  \033[2m  → User icon (top right) → API Keys → Create\033[0m\n\n'        > /dev/tty
+  printf '\n  \033[1;36m──  API Key Setup  ──\033[0m\n'                              > /dev/tty
+  printf '  Keys are stored in your macOS Keychain, not in files.\n\n'               > /dev/tty
+  printf '  \033[1mAnthropic key\033[0m (work profile — rate-limited org account)\n' > /dev/tty
+  printf '  \033[2m  Get from your Anthropic org console or team admin\033[0m\n'     > /dev/tty
+  _aiswitch_setup_key "anthropic" "Anthropic" || return 1
+  printf '\n  \033[1mLogiQ key\033[0m (Codex)\n'                                     > /dev/tty
+  printf '  \033[2m  https://logiq.logitech.io → User icon → API Keys → Create\033[0m\n' > /dev/tty
   _aiswitch_setup_key "openai" "LogiQ" || return 1
   printf '\n  \033[32m✓ Setup complete.\033[0m\n\n' > /dev/tty
 }
@@ -218,8 +226,21 @@ _aiswitch_apply_claude() {
   local profile="$1"
   local src="$HOME/.claude/${profile}-profile.json"
   local dst="$HOME/.claude/settings.json"
-  # Claude always uses claude.ai subscription — no key injection needed.
-  cp "$src" "$dst"
+  local key; key=$(_aiswitch_anthropic_key)
+
+  # Work profile: inject Anthropic key for rate-limited org account auth.
+  # Personal profile: no key — uses claude.ai subscription.
+  if [[ "$profile" == "work" && -n "$key" ]]; then
+    python3 - "$src" "$dst" "$key" << 'PYEOF'
+import sys, json
+src, dst, key = sys.argv[1], sys.argv[2], sys.argv[3]
+d = json.load(open(src))
+d.setdefault("env", {})["ANTHROPIC_API_KEY"] = key
+json.dump(d, open(dst, "w"), indent=2)
+PYEOF
+  else
+    cp "$src" "$dst"
+  fi
   _aiswitch_state_set CLAUDE_PROFILE "$profile"
 }
 
@@ -557,16 +578,22 @@ aiswitch() {
       case "${1:-setup}" in
         setup)  _aiswitch_setup_keys ;;
         status)
+          local ak; ak=$(_aiswitch_key_get "anthropic")
           local ok; ok=$(_aiswitch_key_get "openai")
-          echo "  LogiQ: $(_aiswitch_key_mask "$ok")"
+          echo "  Anthropic: $(_aiswitch_key_mask "$ak")"
+          echo "  LogiQ:     $(_aiswitch_key_mask "$ok")"
           ;;
         delete)
           local name="${2:-}"
+          if [[ "$name" == "anthropic" || "$name" == "all" ]]; then
+            security delete-generic-password -a "$USER" -s "${_AISWITCH_KEYCHAIN}-anthropic" 2>/dev/null
+            echo "  Deleted Anthropic key"
+          fi
           if [[ "$name" == "logiq" || "$name" == "openai" || "$name" == "all" ]]; then
             security delete-generic-password -a "$USER" -s "${_AISWITCH_KEYCHAIN}-openai" 2>/dev/null
             echo "  Deleted LogiQ key"
           fi
-          [[ -z "$name" ]] && echo "Usage: aiswitch keys delete [logiq|all]"
+          [[ -z "$name" ]] && echo "Usage: aiswitch keys delete [anthropic|logiq|all]"
           ;;
         *) echo "Usage: aiswitch keys [setup|status|delete]" ;;
       esac
@@ -596,7 +623,7 @@ aiswitch() {
     status)
       local cp dp ok am_status
       cp=$(_aiswitch_claude_profile); dp=$(_aiswitch_codex_profile)
-      ok=$(_aiswitch_key_get "openai")
+      ak=$(_aiswitch_key_get "anthropic"); ok=$(_aiswitch_key_get "openai")
       am_status=$(_aiswitch_auto_mode_status)
 
       echo "╭─ aiswitch ─────────────────────────────────────────────"
@@ -610,8 +637,9 @@ aiswitch() {
         echo "│"
       fi
 
-      echo "│  API key  (macOS Keychain — service: ${_AISWITCH_KEYCHAIN})"
-      echo "│    LogiQ: $(_aiswitch_key_mask "$ok")"
+      echo "│  API keys  (macOS Keychain — service: ${_AISWITCH_KEYCHAIN})"
+      echo "│    Anthropic: $(_aiswitch_key_mask "$ak")"
+      echo "│    LogiQ:     $(_aiswitch_key_mask "$ok")"
       echo "│"
       echo "│  aiswitch [work|personal] [claude|codex|all]"
       if _aiswitch_auto_mode_enabled; then

@@ -58,15 +58,15 @@ The `p_keys` array must mirror the items list exactly, including `"---"` at the 
 
 Profile files in `profiles/` are templates — never used directly. On switch:
 
-- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`. No key injection — Claude always uses claude.ai subscription auth.
+- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`. For work profile, injects Anthropic key (`LogiQ-anthropic`) as `ANTHROPIC_API_KEY`. Personal profile is copied as-is (uses claude.ai subscription).
 - `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, then appends `api_key = "..."` for both profiles.
 
 ### Auth model
 
 | Profile | Claude auth | Codex auth |
 |---|---|---|
-| work | claude.ai subscription (no key injected) | LogiQ API key in `config.toml` |
-| personal | claude.ai subscription (no key injected) | LogiQ API key in `config.toml` |
+| work | Anthropic key (`LogiQ-anthropic`) → `ANTHROPIC_API_KEY` in `settings.json` | LogiQ key (`LogiQ-openai`) in `config.toml` |
+| personal | claude.ai subscription (no key injected) | LogiQ key (`LogiQ-openai`) in `config.toml` |
 
 ### State file
 
@@ -74,7 +74,11 @@ Profile files in `profiles/` are templates — never used directly. On switch:
 
 ### API key storage
 
-Single LogiQ key stored in macOS Keychain under service `LogiQ-openai` (account = `$USER`), accessed via `_aiswitch_logiq_key()`. Falls back to `$OPENAI_API_KEY` env var if absent.
+Two keys in macOS Keychain (service prefix `LogiQ-`, account = `$USER`):
+- `LogiQ-anthropic` → `_aiswitch_anthropic_key()` — injected into `settings.json` for work profile
+- `LogiQ-openai` → `_aiswitch_logiq_key()` — injected into `config.toml` for both profiles
+
+Both fall back to matching env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) if Keychain entry absent.
 
 ### `install.sh` vs `aiswitch.sh` language
 
