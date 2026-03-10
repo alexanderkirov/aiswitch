@@ -45,7 +45,7 @@ unset ANTHROPIC_API_KEY
 # personal profile unsets all of the above
 ```
 
-The LogiQ token is hardcoded in `~/bin/apiswitch`. `~/.zshrc` sources `~/.apienv` on startup and wraps `apiswitch` to re-source after each call.
+The LogiQ token is read from macOS Keychain (`LogiQ-openai`) by `apiswitch` at runtime. `~/.zshrc` sources `~/.apienv` on startup and wraps `apiswitch` to re-source after each call.
 
 ### `aiswitch` (`~/.claude/aiswitch.sh`) — model/settings profiles
 Manages `~/.claude/settings.json` and `~/.codex/config.toml` — controls model selection, rate limit display, and Codex reasoning effort. Does **not** handle Claude auth (that's `apiswitch`'s job).
@@ -82,10 +82,13 @@ The `p_keys` array must mirror the items list exactly, including `"---"` at the 
 
 ### Profile apply pipeline
 
-Profile files in `profiles/` are templates — never used directly. On switch:
+Profile files in `profiles/` are templates — never used directly. `_aiswitch_apply` orchestrates the full switch:
 
-- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`.
-- `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, then appends `api_key = "..."` for both profiles.
+1. `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`
+2. `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, appends `api_key`
+3. Calls `~/bin/apiswitch <profile>` + sources `~/.apienv` to update Claude auth env in current shell
+4. Kills `claude`/`codex` CLI processes from other sessions (by session ID, spares current session)
+5. Restarts Claude/Codex desktop apps if they were running
 
 ### Auth model
 
@@ -104,6 +107,10 @@ One key in macOS Keychain (service prefix `LogiQ-`, account = `$USER`):
 - `LogiQ-openai` → `_aiswitch_logiq_key()` — appended to `config.toml` for both Codex profiles
 
 Falls back to `OPENAI_API_KEY` env var if Keychain entry absent.
+
+### Auto-update
+
+`aiswitch` silently fetches the latest `aiswitch.sh` from GitHub on every invocation (disowned background job, `&!`). If changed, replaces `~/.claude/aiswitch.sh` and prints `↻ aiswitch updated — run: source ~/.zshrc`. Skipped when subcommand is `update`.
 
 ### `install.sh` vs `aiswitch.sh` language
 
