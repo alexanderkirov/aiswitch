@@ -300,16 +300,16 @@ _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
   case "$tools" in
     claude|all)
       if pgrep -x "Claude" > /dev/null 2>&1; then
-        pkill -x "Claude" 2>/dev/null || true
-        sleep 0.3
+        kill -9 $(pgrep -x "Claude") 2>/dev/null || true
+        sleep 0.5
         open -b "com.anthropic.claudefordesktop" &
       fi ;;
   esac
   case "$tools" in
     codex|all)
       if pgrep -x "Codex" > /dev/null 2>&1; then
-        pkill -x "Codex" 2>/dev/null || true
-        sleep 0.3
+        kill -9 $(pgrep -x "Codex") 2>/dev/null || true
+        sleep 0.5
         open -b "com.openai.codex" &
       fi ;;
   esac
