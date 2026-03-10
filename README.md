@@ -33,9 +33,8 @@ aiswitch keys setup
 
 Follow the prompts to add your API keys. Keys are stored securely in macOS Keychain.
 
-**Don't have API keys?**
-- **Anthropic (Claude)**: Get from [console.anthropic.com](https://console.anthropic.com) → API Keys
-- **OpenAI (Codex)**: Get from [https://logiq.logitech.io](https://logiq.logitech.io) → User icon (top right) → API Keys → Create
+**Don't have a LogiQ API key?**
+Get from [logiq.logitech.io](https://logiq.logitech.io) → User icon (top right) → Profile → API Key tab → Create. Keys expire after 1 year.
 
 ### 4. Start Using
 
