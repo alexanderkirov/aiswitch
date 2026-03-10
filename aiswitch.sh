@@ -95,18 +95,13 @@ _aiswitch_key_set() {
     -a "$USER" -s "${_AISWITCH_KEYCHAIN}-${1}" -w "${2}"
 }
 
-_aiswitch_anthropic_key() {
-  local k; k=$(_aiswitch_key_get "anthropic")
-  echo "${k:-${ANTHROPIC_API_KEY:-}}"
-}
-
-_aiswitch_openai_key() {
+_aiswitch_logiq_key() {
   local k; k=$(_aiswitch_key_get "openai")
   echo "${k:-${OPENAI_API_KEY:-}}"
 }
 
 _aiswitch_keys_any() {
-  [[ -n "$(_aiswitch_anthropic_key)" || -n "$(_aiswitch_openai_key)" ]]
+  [[ -n "$(_aiswitch_logiq_key)" ]]
 }
 
 _aiswitch_key_mask() {
@@ -223,7 +218,7 @@ _aiswitch_apply_claude() {
   local profile="$1"
   local src="$HOME/.claude/${profile}-profile.json"
   local dst="$HOME/.claude/settings.json"
-  local key; key=$(_aiswitch_anthropic_key)
+  local key; key=$(_aiswitch_logiq_key)
 
   if [[ -n "$key" ]]; then
     python3 - "$src" "$dst" "$key" << 'PYEOF'
@@ -243,7 +238,7 @@ _aiswitch_apply_codex() {
   local profile="$1"
   local src="$HOME/.codex/${profile}-profile.toml"
   local dst="$HOME/.codex/config.toml"
-  local key; key=$(_aiswitch_openai_key)
+  local key; key=$(_aiswitch_logiq_key)
 
   cp "$src" "$dst"
   if [[ -n "$key" ]]; then
