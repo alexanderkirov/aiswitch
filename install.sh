@@ -100,19 +100,14 @@ else
   _ok "Added source line to $RCFILE"
 fi
 
-# ── 6. Relaunch shell and run aiswitch ───────────────────────────────────────
+# ── 6. Open a new terminal tab/window and run aiswitch ───────────────────────
 
 printf '\n\033[1;32m  ✓ Installation complete!\033[0m\n\n'
-printf '  Launching aiswitch setup...\n\n'
+printf '  Opening a new terminal to launch aiswitch...\n\n'
 
-# Source the shell rc file in the current shell to make aiswitch available
-# shellcheck source=/dev/null
-source "$RCFILE" 2>/dev/null || true
-
-# Run aiswitch interactive setup
-if command -v aiswitch &>/dev/null; then
-  aiswitch
-else
-  printf '  \033[33m⚠\033[0m  aiswitch not available in current shell.\n'
-  printf '  Please reload your shell and run: aiswitch\n\n'
-fi
+osascript -e "
+tell application \"Terminal\"
+  activate
+  do script \"source '$RCFILE' && aiswitch\"
+end tell
+"
