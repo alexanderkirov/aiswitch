@@ -255,12 +255,19 @@ _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
     source "$HOME/.apienv" 2>/dev/null
   fi
 
-  # Kill running CLI processes — they'll restart on next invocation with fresh env
+  # Kill other CLI processes (not the current session) so they relaunch with fresh env
+  local my_sid; my_sid=$(ps -o sid= $$)
   case "$tools" in
-    claude|all) pkill -x "claude" 2>/dev/null || true ;;
+    claude|all)
+      pgrep -x "claude" | while read pid; do
+        [[ "$(ps -o sid= $pid)" == "$my_sid" ]] || kill "$pid" 2>/dev/null || true
+      done ;;
   esac
   case "$tools" in
-    codex|all)  pkill -x "codex"  2>/dev/null || true ;;
+    codex|all)
+      pgrep -x "codex" | while read pid; do
+        [[ "$(ps -o sid= $pid)" == "$my_sid" ]] || kill "$pid" 2>/dev/null || true
+      done ;;
   esac
 
   # Restart desktop apps
