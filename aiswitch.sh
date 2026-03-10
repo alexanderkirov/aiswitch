@@ -238,6 +238,28 @@ _aiswitch_apply_codex() {
   _aiswitch_state_set CODEX_PROFILE "$profile"
 }
 
+_aiswitch_launchd_env() {     # sync launchd env so Mac apps inherit the right profile
+  local profile="$1"
+  if [[ "$profile" == "work" ]]; then
+    local token; token=$(_aiswitch_logiq_key)
+    launchctl setenv ANTHROPIC_BASE_URL                     "https://logiq-service.logitech.io/anthropic"
+    launchctl setenv ANTHROPIC_AUTH_TOKEN                   "$token"
+    launchctl setenv CLAUDE_CODE_SKIP_BEDROCK_AUTH          "1"
+    launchctl setenv CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS "1"
+    launchctl setenv OPENAI_BASE_URL                        "https://logiq-service.logitech.io/openai/v1"
+    launchctl setenv OPENAI_API_KEY                         "$token"
+    launchctl unsetenv ANTHROPIC_API_KEY
+  else
+    launchctl unsetenv ANTHROPIC_BASE_URL
+    launchctl unsetenv ANTHROPIC_AUTH_TOKEN
+    launchctl unsetenv CLAUDE_CODE_SKIP_BEDROCK_AUTH
+    launchctl unsetenv CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS
+    launchctl unsetenv OPENAI_BASE_URL
+    launchctl unsetenv OPENAI_API_KEY
+    launchctl unsetenv ANTHROPIC_API_KEY
+  fi
+}
+
 _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
   local profile="$1" tools="${2:-all}"
   local applied=()
@@ -269,6 +291,9 @@ _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
         [[ "$(ps -o sid= $pid)" == "$my_sid" ]] || kill "$pid" 2>/dev/null || true
       done ;;
   esac
+
+  # Push auth env into launchd namespace so Mac apps inherit it on relaunch
+  _aiswitch_launchd_env "$profile"
 
   # Restart desktop apps
   case "$tools" in
