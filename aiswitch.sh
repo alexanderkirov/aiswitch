@@ -218,19 +218,8 @@ _aiswitch_apply_claude() {
   local profile="$1"
   local src="$HOME/.claude/${profile}-profile.json"
   local dst="$HOME/.claude/settings.json"
-  local key; key=$(_aiswitch_logiq_key)
 
-  if [[ -n "$key" ]]; then
-    python3 - "$src" "$dst" "$key" << 'PYEOF'
-import sys, json
-src, dst, key = sys.argv[1], sys.argv[2], sys.argv[3]
-d = json.load(open(src))
-d.setdefault("env", {})["ANTHROPIC_API_KEY"] = key
-json.dump(d, open(dst, "w"), indent=2)
-PYEOF
-  else
-    cp "$src" "$dst"
-  fi
+  cp "$src" "$dst"
   _aiswitch_state_set CLAUDE_PROFILE "$profile"
 }
 
