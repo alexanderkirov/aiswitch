@@ -151,7 +151,7 @@ apiswitch status                      show current auth profile
 
 | | Claude work | Claude personal | Codex work | Codex personal |
 |---|---|---|---|---|
-| Default model | `claude-sonnet-4-6` | `claude-sonnet-4-6` | `gpt-5.1-codex` | `gpt-5.1-codex` |
+| Default model | `claude-sonnet-4-6` | `claude-sonnet-4-6` | `gpt-5` | `gpt-5.1-codex` |
 | Available models | haiku, sonnet, opus | haiku, sonnet, opus | — | — |
 | Reasoning effort | — | — | `medium` | `xhigh` |
 | Rate limit | 20 RPM / 300 RPH | unrestricted | — | — |
