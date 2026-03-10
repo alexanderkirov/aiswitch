@@ -119,21 +119,22 @@ aiswitch restore
 
 ### Claude Desktop App
 
-Profile switching takes effect on the **next conversation**. To test:
+`aiswitch work` automatically restarts the Claude app with the correct API endpoint injected via `launchctl setenv`. To verify:
 
-1. Run: `aiswitch work`
-2. Open Claude Desktop app
-3. Start a **new** conversation (not resuming old one)
-4. Verify it shows Sonnet model (work default)
-5. Run: `aiswitch personal`
-6. Start another **new** conversation
-7. Verify it shows Sonnet model (personal default)
+```bash
+launchctl getenv ANTHROPIC_BASE_URL    # → https://logiq-service.logitech.io/anthropic
+launchctl getenv ANTHROPIC_AUTH_TOKEN  # → eyJ... (token)
+```
 
-**Note**: Resuming existing conversations may use the model stored in that session, not the new profile.
+**Note**: Resuming existing conversations uses the model cached in that session. Start a new conversation to use the switched profile.
+
+**Cowork mode**: The Cowork feature uses a native VM that bypasses `ANTHROPIC_BASE_URL` and always connects to `api.anthropic.com` directly. Cowork requests will not appear in the LogiQ dashboard regardless of profile — this is a Cowork architecture limitation.
+
+**After system reboot**: `launchctl setenv` values don't persist across reboots. Run `aiswitch work` again to restore the work profile to desktop apps.
 
 ### Codex Desktop App
 
-Same workflow—new sessions pick up the new profile.
+`aiswitch work` restarts Codex with the updated `~/.codex/config.toml` (work model + LogiQ API key).
 
 ## Troubleshooting
 
@@ -149,10 +150,12 @@ Add keys with:
 aiswitch keys setup
 ```
 
-### Desktop app doesn't pick up new profile
-- Make sure you started a **new** conversation (not resuming)
-- Desktop apps read config on startup, not mid-session
-- Try fully quitting the app (⌘Q) and reopening
+### Desktop app still uses wrong profile after switching
+Run `aiswitch work` again — it force-restarts the app. If it still persists, manually restart:
+```bash
+kill -9 $(pgrep -x "Claude") && open -b "com.anthropic.claudefordesktop"
+```
+Then verify `launchctl getenv ANTHROPIC_AUTH_TOKEN` shows the token.
 
 ### Config not updating
 Check the config files were written:
