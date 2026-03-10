@@ -249,9 +249,40 @@ _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
     codex|all)  _aiswitch_apply_codex  "$profile"; applied+=("Codex")  ;;
   esac
 
+  # Sync apiswitch env so current shell and new processes use the right profile
+  if [[ -x "$HOME/bin/apiswitch" ]]; then
+    "$HOME/bin/apiswitch" "$profile" 2>/dev/null
+    source "$HOME/.apienv" 2>/dev/null
+  fi
+
+  # Kill running CLI processes — they'll restart on next invocation with fresh env
+  case "$tools" in
+    claude|all) pkill -x "claude" 2>/dev/null || true ;;
+  esac
+  case "$tools" in
+    codex|all)  pkill -x "codex"  2>/dev/null || true ;;
+  esac
+
+  # Restart desktop apps
+  case "$tools" in
+    claude|all)
+      if pgrep -x "Claude" > /dev/null 2>&1; then
+        pkill -x "Claude" 2>/dev/null || true
+        sleep 0.3
+        open -b "com.anthropic.claudefordesktop" &
+      fi ;;
+  esac
+  case "$tools" in
+    codex|all)
+      if pgrep -x "Codex" > /dev/null 2>&1; then
+        pkill -x "Codex" 2>/dev/null || true
+        sleep 0.3
+        open -b "com.openai.codex" &
+      fi ;;
+  esac
+
   local targets="${(j: + :)applied}"
   printf '  \033[32m✓ Switched %s → %s profile\033[0m\n' "$targets" "$profile" > /dev/tty
-  printf '  \033[2m  Mac apps will use this profile on their next request.\033[0m\n' > /dev/tty
 }
 
 # ── Auto mode commands ─────────────────────────────────────────────────────────
