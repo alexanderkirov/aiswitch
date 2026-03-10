@@ -274,7 +274,7 @@ _aiswitch_apply() {           # _aiswitch_apply PROFILE TOOLS
 
   # Sync apiswitch env so current shell and new processes use the right profile
   if [[ -x "$HOME/bin/apiswitch" ]]; then
-    "$HOME/bin/apiswitch" "$profile" 2>/dev/null
+    "$HOME/bin/apiswitch" "$profile" > /dev/tty || return 1
     source "$HOME/.apienv" 2>/dev/null
   fi
 
