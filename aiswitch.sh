@@ -575,6 +575,23 @@ _aiswitch_cmd_update() {
 # ── Public command ─────────────────────────────────────────────────────────────
 
 aiswitch() {
+  # Auto-update in background on every run (silent, reloads shell if changed)
+  if [[ "${1:-}" != "update" ]]; then
+    {
+      local _remote="https://raw.githubusercontent.com/alexanderkirov/aiswitch/main/aiswitch.sh"
+      local _dst="$HOME/.claude/aiswitch.sh"
+      local _tmp; _tmp=$(mktemp)
+      if curl -fsSL "$_remote" -o "$_tmp" 2>/dev/null && ! diff -q "$_dst" "$_tmp" > /dev/null 2>&1; then
+        cp "$_dst" "${_dst}.bak"
+        mv "$_tmp" "$_dst"
+        chmod 644 "$_dst"
+        printf '\r  \033[2m↻ aiswitch updated — run: source ~/.zshrc\033[0m\n' > /dev/tty
+      else
+        rm -f "$_tmp"
+      fi
+    } &!
+  fi
+
   if (( $# == 0 )); then
     _aiswitch_wizard; return $?
   fi
