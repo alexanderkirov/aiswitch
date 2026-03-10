@@ -79,26 +79,10 @@ else
   _ok "Added source line to $RCFILE"
 fi
 
-# ── 6. Load for this session ──────────────────────────────────────────────────
-
-# shellcheck source=/dev/null
-source "$CLAUDE_DIR/aiswitch.sh"
-
-# ── 7. First-time API key setup ───────────────────────────────────────────────
-
-_section "API key setup"
-printf '  Keys are stored in your macOS Keychain — not in any file.\n'
-printf '  You can skip any key and add it later with: aiswitch keys setup\n\n'
-
-_aiswitch_setup_keys || true
-
-# ── 8. Apply work profile (default) ──────────────────────────────────────────
-
-_section "Applying default profile (work)"
-_aiswitch_apply "work" "all" 2>/dev/null || true
-
-# ── Done ──────────────────────────────────────────────────────────────────────
+# ── 6. Done ──────────────────────────────────────────────────────────────────
 
 printf '\n\033[1;32m  ✓ Installation complete!\033[0m\n\n'
-printf '  Reload your shell:  source %s\n' "$RCFILE"
-printf '  Then run:           aiswitch\n\n'
+printf '  Reload your shell:\n'
+printf '    source %s\n\n' "$RCFILE"
+printf '  Then set up API keys and profiles:\n'
+printf '    aiswitch\n\n'
