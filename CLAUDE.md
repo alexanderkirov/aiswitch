@@ -108,10 +108,33 @@ aiswitch status
 
 | | Claude work | Claude personal | Codex work | Codex personal |
 |---|---|---|---|---|
-| Default model | `claude-sonnet-4-6` | `claude-sonnet-4-6` | `gpt-5.3-codex` | `gpt-5.3-codex` |
+| Default model | `claude-sonnet-4-6` | `claude-sonnet-4-6` | `gpt-5.1-codex` | `gpt-5.1-codex` |
 | Available models | haiku, sonnet, opus | haiku, sonnet, opus | — | — |
 | Reasoning effort | — | — | `medium` | `xhigh` |
 | Rate limit | 20 RPM / 300 RPH | unrestricted | — | — |
+
+## LogiQ API (Codex backend)
+
+Codex uses the LogiQ OpenAI-compatible API at `https://logiq-service.logitech.io/openai/v1`.
+The `api_key` in `config.toml` is a base64-encoded LogiQ access token (not an OpenAI key).
+
+**Supported Codex models** (LLMs available at `/openai/v1/chat/completions`):
+- `gpt-5.1-codex` — current Codex model
+- `gpt-5.1-codex-mini`
+- `gpt-5`, `gpt-5.1`, `gpt-5.2`, `gpt-4o`, `gpt-4.1`, `gpt-4`, `gpt-3.5`
+
+**Authentication**: Bearer token in `Authorization` header. Obtain via LogiQ portal:
+> User icon → Profile → API Key tab → Create
+
+**Key info**:
+- Keys expire after 1 year; only the hash is stored server-side
+- API key format: base64-encoded JSON with `user_id`, `key_id`, `expires_at`
+- Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- 429 → `rate_limit_exceeded` error type
+
+**Claude via LogiQ** (Anthropic-compatible API at `https://logiq-service.logitech.io/anthropic/v1`):
+Not currently used by aiswitch — work profile uses the Anthropic key directly.
+Supported models include `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5`, and others.
 
 ## Auto mode
 
@@ -123,7 +146,7 @@ Restore time formula: `next_hour_boundary + 60s` — computed in `_aiswitch_comp
 
 ## Troubleshooting
 
-**Auth conflict warning** — `ANTHROPIC_API_KEY` set while on personal profile: run `aiswitch work` then `aiswitch personal` to regenerate `settings.json` cleanly.
+**Auth conflict warning** — `_aiswitch_apply_claude` automatically handles this: switching to work profile runs `claude auth logout` first (removes oauth token so API key takes over); switching to personal profile prints `→ Run: claude auth login` if not already logged in.
 
 **`aiswitch` not found after install** — `source ~/.zshrc` or verify `~/.zshrc` sources `~/.claude/aiswitch.sh`.
 
