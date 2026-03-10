@@ -1,5 +1,2 @@
 model = "gpt-5"
 model_reasoning_effort = "medium"
-
-[mcp_servers.figma]
-url = "https://mcp.figma.com/mcp"
