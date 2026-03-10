@@ -58,14 +58,14 @@ The `p_keys` array must mirror the items list exactly, including `"---"` at the 
 
 Profile files in `profiles/` are templates — never used directly. On switch:
 
-- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`. For **work** profile only, injects the LogiQ key as `ANTHROPIC_API_KEY` via Python 3. Personal profile is copied as-is (uses claude.ai subscription auth — no key injection avoids auth conflict warning).
+- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`. No key injection — Claude always uses claude.ai subscription auth.
 - `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, then appends `api_key = "..."` for both profiles.
 
 ### Auth model
 
 | Profile | Claude auth | Codex auth |
 |---|---|---|
-| work | LogiQ API key → `ANTHROPIC_API_KEY` in `settings.json` | LogiQ API key in `config.toml` |
+| work | claude.ai subscription (no key injected) | LogiQ API key in `config.toml` |
 | personal | claude.ai subscription (no key injected) | LogiQ API key in `config.toml` |
 
 ### State file
