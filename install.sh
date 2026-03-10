@@ -86,18 +86,42 @@ fi
 chmod 644 "$CLAUDE_DIR/aiswitch.sh"
 _ok "~/.claude/aiswitch.sh"
 
-# ── 5. Wire into shell RC ─────────────────────────────────────────────────────
+# ── 5. Install apiswitch ──────────────────────────────────────────────────────
+
+_section "Installing apiswitch"
+
+mkdir -p "$HOME/bin"
+if (( FETCH_MODE )); then
+  _fetch_file "$REMOTE_BASE/apiswitch.sh" > "$HOME/bin/apiswitch"
+else
+  cp "$REPO_DIR/apiswitch.sh" "$HOME/bin/apiswitch"
+fi
+chmod 755 "$HOME/bin/apiswitch"
+_ok "~/bin/apiswitch"
+
+# ── 6. Wire into shell RC ─────────────────────────────────────────────────────
 
 _section "Configuring shell"
 
 SOURCE_LINE='[[ -f ~/.claude/aiswitch.sh ]] && source ~/.claude/aiswitch.sh'
+APIENV_LINE='[[ -f ~/.apienv ]] && source ~/.apienv'
+APISWITCH_LINE='apiswitch() { "$HOME/bin/apiswitch" "$@" && source "$HOME/.apienv" 2>/dev/null; }'
 
 if grep -qF 'aiswitch.sh' "$RCFILE" 2>/dev/null; then
   _ok "$RCFILE already sources aiswitch (skipped)"
 else
   printf '\n# ── LogiQ aiswitch ──────────────────────────────────────\n' >> "$RCFILE"
   printf '%s\n' "$SOURCE_LINE" >> "$RCFILE"
-  _ok "Added source line to $RCFILE"
+  _ok "Added aiswitch source line to $RCFILE"
+fi
+
+if grep -qF '.apienv' "$RCFILE" 2>/dev/null; then
+  _ok "$RCFILE already sources .apienv (skipped)"
+else
+  printf '\n# ── LogiQ apiswitch ─────────────────────────────────────\n' >> "$RCFILE"
+  printf '%s\n' "$APIENV_LINE" >> "$RCFILE"
+  printf '%s\n' "$APISWITCH_LINE" >> "$RCFILE"
+  _ok "Added apiswitch wiring to $RCFILE"
 fi
 
 # ── 6. Open a new terminal tab/window and run aiswitch ───────────────────────
@@ -108,6 +132,6 @@ printf '  Opening a new terminal to launch aiswitch...\n\n'
 osascript -e "
 tell application \"Terminal\"
   activate
-  do script \"source '$RCFILE' && aiswitch\"
+  do script \"source '$RCFILE' && aiswitch keys setup && apiswitch work\"
 end tell
 "

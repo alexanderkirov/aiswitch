@@ -26,6 +26,32 @@ cat ~/.claude/settings.json
 cat ~/.codex/config.toml
 ```
 
+## Two-tool architecture
+
+There are **two separate tools** that work together — both sourced via `~/.zshrc`:
+
+### `apiswitch` (`~/bin/apiswitch`) — Claude auth
+Manages Claude Code's connection to the LogiQ Anthropic-compatible API by writing `~/.apienv`, which is sourced into the shell on every launch:
+
+```sh
+# work profile writes:
+export ANTHROPIC_BASE_URL="https://logiq-service.logitech.io/anthropic"
+export ANTHROPIC_AUTH_TOKEN="<logiq_token>"
+export CLAUDE_CODE_SKIP_BEDROCK_AUTH=1
+export OPENAI_BASE_URL="https://logiq-service.logitech.io/openai/v1"
+export OPENAI_API_KEY="<logiq_token>"
+unset ANTHROPIC_API_KEY
+
+# personal profile unsets all of the above
+```
+
+The LogiQ token is hardcoded in `~/bin/apiswitch`. `~/.zshrc` sources `~/.apienv` on startup and wraps `apiswitch` to re-source after each call.
+
+### `aiswitch` (`~/.claude/aiswitch.sh`) — model/settings profiles
+Manages `~/.claude/settings.json` and `~/.codex/config.toml` — controls model selection, rate limit display, and Codex reasoning effort. Does **not** handle Claude auth (that's `apiswitch`'s job).
+
+The Codex `api_key` (LogiQ token) is stored in macOS Keychain as `LogiQ-openai` and appended to `config.toml` on switch.
+
 ## Architecture of `aiswitch.sh`
 
 ### I/O rule: all interactive output goes to `/dev/tty`, never stdout
@@ -58,15 +84,15 @@ The `p_keys` array must mirror the items list exactly, including `"---"` at the 
 
 Profile files in `profiles/` are templates — never used directly. On switch:
 
-- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`. For work profile, injects Anthropic key (`LogiQ-anthropic`) as `ANTHROPIC_API_KEY`. Personal profile is copied as-is (uses claude.ai subscription).
+- `_aiswitch_apply_claude`: copies profile JSON to `~/.claude/settings.json`.
 - `_aiswitch_apply_codex`: copies TOML to `~/.codex/config.toml`, then appends `api_key = "..."` for both profiles.
 
 ### Auth model
 
 | Profile | Claude auth | Codex auth |
 |---|---|---|
-| work | Anthropic key (`LogiQ-anthropic`) → `ANTHROPIC_API_KEY` in `settings.json` | LogiQ key (`LogiQ-openai`) in `config.toml` |
-| personal | claude.ai subscription (no key injected) | LogiQ key (`LogiQ-openai`) in `config.toml` |
+| work | `ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_BASE_URL` set by `apiswitch` in `~/.apienv` | LogiQ key (`LogiQ-openai`) in `config.toml` |
+| personal | all LogiQ env vars unset by `apiswitch`; falls back to claude.ai subscription | LogiQ key (`LogiQ-openai`) in `config.toml` |
 
 ### State file
 
@@ -74,11 +100,10 @@ Profile files in `profiles/` are templates — never used directly. On switch:
 
 ### API key storage
 
-Two keys in macOS Keychain (service prefix `LogiQ-`, account = `$USER`):
-- `LogiQ-anthropic` → `_aiswitch_anthropic_key()` — injected into `settings.json` for work profile
-- `LogiQ-openai` → `_aiswitch_logiq_key()` — injected into `config.toml` for both profiles
+One key in macOS Keychain (service prefix `LogiQ-`, account = `$USER`):
+- `LogiQ-openai` → `_aiswitch_logiq_key()` — appended to `config.toml` for both Codex profiles
 
-Both fall back to matching env vars (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) if Keychain entry absent.
+Falls back to `OPENAI_API_KEY` env var if Keychain entry absent.
 
 ### `install.sh` vs `aiswitch.sh` language
 
@@ -102,6 +127,10 @@ aiswitch mode [auto|manual|status]
 aiswitch hit [--time UNIX_TIMESTAMP]  signal rate limit
 aiswitch auto-restore                 (internal) check/execute restore
 aiswitch status
+
+apiswitch                             interactive menu (Claude auth)
+apiswitch work|personal               switch Claude auth profile
+apiswitch status                      show current auth profile
 ```
 
 ## Profile settings
@@ -131,7 +160,7 @@ Restore time formula: `next_hour_boundary + 60s` — computed in `_aiswitch_comp
 
 ## Troubleshooting
 
-**Auth conflict warning** — `_aiswitch_apply_claude` automatically handles this: switching to work profile runs `claude auth logout` first (removes oauth token so API key takes over); switching to personal profile prints `→ Run: claude auth login` if not already logged in.
+**"Invalid API key" on new machine** — `~/.apienv` is missing. Run `apiswitch work` to regenerate it (requires `~/bin/apiswitch` with the LogiQ token to be present first).
 
 **`aiswitch` not found after install** — `source ~/.zshrc` or verify `~/.zshrc` sources `~/.claude/aiswitch.sh`.
 

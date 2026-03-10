@@ -226,29 +226,8 @@ _aiswitch_apply_claude() {
   local profile="$1"
   local src="$HOME/.claude/${profile}-profile.json"
   local dst="$HOME/.claude/settings.json"
-  local key; key=$(_aiswitch_anthropic_key)
 
-  # Work profile: inject Anthropic key for rate-limited org account auth.
-  # Personal profile: no key — uses claude.ai subscription.
-  if [[ "$profile" == "work" && -n "$key" ]]; then
-    # Logout from claude.ai to avoid auth conflict with API key
-    if claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
-      claude auth logout 2>/dev/null
-    fi
-    python3 - "$src" "$dst" "$key" << 'PYEOF'
-import sys, json
-src, dst, key = sys.argv[1], sys.argv[2], sys.argv[3]
-d = json.load(open(src))
-d.setdefault("env", {})["ANTHROPIC_API_KEY"] = key
-json.dump(d, open(dst, "w"), indent=2)
-PYEOF
-  else
-    cp "$src" "$dst"
-    # Prompt to login if not already authenticated via claude.ai
-    if ! claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
-      printf '  \033[33m→  Run: claude auth login\033[0m\n' > /dev/tty
-    fi
-  fi
+  cp "$src" "$dst"
   _aiswitch_state_set CLAUDE_PROFILE "$profile"
 }
 
