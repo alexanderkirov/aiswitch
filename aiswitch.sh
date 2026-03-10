@@ -241,7 +241,8 @@ _aiswitch_apply_codex() {
 _aiswitch_launchd_env() {     # sync launchd env so Mac apps inherit the right profile
   local profile="$1"
   if [[ "$profile" == "work" ]]; then
-    local token; token=$(_aiswitch_logiq_key)
+    # Use token from env (set by apiswitch + source ~/.apienv) with keychain as fallback
+    local token; token="${ANTHROPIC_AUTH_TOKEN:-$(_aiswitch_logiq_key)}"
     launchctl setenv ANTHROPIC_BASE_URL                     "https://logiq-service.logitech.io/anthropic"
     launchctl setenv ANTHROPIC_AUTH_TOKEN                   "$token"
     launchctl setenv CLAUDE_CODE_SKIP_BEDROCK_AUTH          "1"
