@@ -102,7 +102,7 @@ aiswitch restore
 ## Profiles
 
 ### Work Profile (Claude)
-- **Default model**: Haiku (fast, rate-limited)
+- **Default model**: Sonnet (rate-limited org account)
 - **Rate limit**: 20 requests/min · 300 requests/hour
 - **Available models**: Haiku, Sonnet, Opus (switchable in Claude Code UI)
 
@@ -124,7 +124,7 @@ Profile switching takes effect on the **next conversation**. To test:
 1. Run: `aiswitch work`
 2. Open Claude Desktop app
 3. Start a **new** conversation (not resuming old one)
-4. Verify it shows Haiku model (work default)
+4. Verify it shows Sonnet model (work default)
 5. Run: `aiswitch personal`
 6. Start another **new** conversation
 7. Verify it shows Sonnet model (personal default)

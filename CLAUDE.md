@@ -116,25 +116,10 @@ aiswitch status
 ## LogiQ API (Codex backend)
 
 Codex uses the LogiQ OpenAI-compatible API at `https://logiq-service.logitech.io/openai/v1`.
-The `api_key` in `config.toml` is a base64-encoded LogiQ access token (not an OpenAI key).
+The `api_key` in `config.toml` is a base64-encoded LogiQ access token — **not** an OpenAI key.
+Obtain via: LogiQ portal → User icon → Profile → API Key tab → Create. Keys expire after 1 year.
 
-**Supported Codex models** (LLMs available at `/openai/v1/chat/completions`):
-- `gpt-5.1-codex` — current Codex model
-- `gpt-5.1-codex-mini`
-- `gpt-5`, `gpt-5.1`, `gpt-5.2`, `gpt-4o`, `gpt-4.1`, `gpt-4`, `gpt-3.5`
-
-**Authentication**: Bearer token in `Authorization` header. Obtain via LogiQ portal:
-> User icon → Profile → API Key tab → Create
-
-**Key info**:
-- Keys expire after 1 year; only the hash is stored server-side
-- API key format: base64-encoded JSON with `user_id`, `key_id`, `expires_at`
-- Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- 429 → `rate_limit_exceeded` error type
-
-**Claude via LogiQ** (Anthropic-compatible API at `https://logiq-service.logitech.io/anthropic/v1`):
-Not currently used by aiswitch — work profile uses the Anthropic key directly.
-Supported models include `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5`, and others.
+Current Codex model: `gpt-5.1-codex`. Other available models: `gpt-5.1-codex-mini`, `gpt-5`, `gpt-5.2`, `gpt-4o`, `gpt-4.1`.
 
 ## Auto mode
 
