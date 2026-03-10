@@ -1,17 +1,36 @@
 #!/usr/bin/env bash
 # LogiQ aiswitch — team installer
-# Run with:  bash <(curl -fsSL <your-raw-url>/install.sh)
-#        or: bash install.sh   (if you have the repo checked out)
+# Run with:  bash <(curl -fsSL https://raw.githubusercontent.com/alexanderkirov/aiswitch/main/install.sh)
+#        or: bash install.sh   (if you have the repo checked out locally)
 set -euo pipefail
-
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLAUDE_DIR="$HOME/.claude"
-CODEX_DIR="$HOME/.codex"
 
 _info()    { printf '  \033[1;36m→\033[0m  %s\n' "$*"; }
 _ok()      { printf '  \033[32m✓\033[0m  %s\n'   "$*"; }
 _warn()    { printf '  \033[33m⚠\033[0m  %s\n'   "$*"; }
 _section() { printf '\n\033[1m%s\033[0m\n' "$*"; }
+
+CLAUDE_DIR="$HOME/.claude"
+CODEX_DIR="$HOME/.codex"
+
+# Detect if running from pipe (e.g., curl | bash) vs local checkout
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || true)"
+if [[ ! -f "$REPO_DIR/aiswitch.sh" ]]; then
+  # Running from pipe - fetch from GitHub
+  REMOTE_BASE="https://raw.githubusercontent.com/alexanderkirov/aiswitch/main"
+  FETCH_MODE=1
+else
+  # Running locally
+  FETCH_MODE=0
+fi
+
+_fetch_file() {
+  local url="$1"
+  if (( FETCH_MODE )); then
+    curl -fsSL "$url"
+  else
+    cat "$url"
+  fi
+}
 
 # ── 1. Detect shell rc file ───────────────────────────────────────────────────
 
@@ -31,37 +50,39 @@ _info "Shell RC file: $RCFILE"
 
 mkdir -p "$CLAUDE_DIR" "$CODEX_DIR"
 
-# ── 3. Copy profile files ─────────────────────────────────────────────────────
+# ── 3. Install profile files ──────────────────────────────────────────────────
 
 _section "Installing profile files"
 
+# Claude profiles
 for f in work-profile.json personal-profile.json; do
-  src="$REPO_DIR/profiles/claude/$f"
-  dst="$CLAUDE_DIR/$f"
-  if [[ -f "$src" ]]; then
-    cp "$src" "$dst"
-    _ok "~/.claude/$f"
+  if (( FETCH_MODE )); then
+    _fetch_file "$REMOTE_BASE/profiles/claude/$f" > "$CLAUDE_DIR/$f"
   else
-    _warn "$src not found — skipping (use existing or create manually)"
+    cp "$REPO_DIR/profiles/claude/$f" "$CLAUDE_DIR/$f"
   fi
+  _ok "~/.claude/$f"
 done
 
+# Codex profiles
 for f in work-profile.toml personal-profile.toml; do
-  src="$REPO_DIR/profiles/codex/$f"
-  dst="$CODEX_DIR/$f"
-  if [[ -f "$src" ]]; then
-    cp "$src" "$dst"
-    _ok "~/.codex/$f"
+  if (( FETCH_MODE )); then
+    _fetch_file "$REMOTE_BASE/profiles/codex/$f" > "$CODEX_DIR/$f"
   else
-    _warn "$src not found — skipping"
+    cp "$REPO_DIR/profiles/codex/$f" "$CODEX_DIR/$f"
   fi
+  _ok "~/.codex/$f"
 done
 
-# ── 4. Copy aiswitch.sh ───────────────────────────────────────────────────────
+# ── 4. Install aiswitch.sh ────────────────────────────────────────────────────
 
 _section "Installing aiswitch"
 
-cp "$REPO_DIR/aiswitch.sh" "$CLAUDE_DIR/aiswitch.sh"
+if (( FETCH_MODE )); then
+  _fetch_file "$REMOTE_BASE/aiswitch.sh" > "$CLAUDE_DIR/aiswitch.sh"
+else
+  cp "$REPO_DIR/aiswitch.sh" "$CLAUDE_DIR/aiswitch.sh"
+fi
 chmod 644 "$CLAUDE_DIR/aiswitch.sh"
 _ok "~/.claude/aiswitch.sh"
 
