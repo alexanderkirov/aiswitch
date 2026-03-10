@@ -176,6 +176,8 @@ Restore time formula: `next_hour_boundary + 60s` — computed in `_aiswitch_comp
 
 **Claude desktop app Cowork mode** — Cowork uses a native Swift/Go VM (`swift_addon.node`) with its own HTTP client that does **not** read `ANTHROPIC_BASE_URL` from `process.env`. It bypasses the Anthropic JS SDK entirely and connects directly to `api.anthropic.com` (Anthropic IP `160.79.104.10`). There is no external config to redirect it to LogiQ. Only the Claude Code CLI and Codex use LogiQ in work profile.
 
+**Codex CLI + LogiQ** — Codex CLI sends `{"type":"shell","name":"shell"}` in the `tools` array of every `/v1/responses` request. LogiQ's OpenAI-compatible API does not support this tool type and returns a 400 validation error ("error parsing body"). This is a LogiQ platform limitation — all models fail identically. Codex CLI only works with the real OpenAI API (personal profile).
+
 ## Troubleshooting
 
 **"Invalid API key" on new machine** — `~/.apienv` is missing. Run `apiswitch work` to regenerate it (requires `~/bin/apiswitch` with the LogiQ token to be present first).
